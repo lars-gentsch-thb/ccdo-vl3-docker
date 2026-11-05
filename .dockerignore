@@ -1,5 +1,3 @@
-target/
-build/
-.git/
-.idea/
-*.iml
+*
+!target/*.jar
+!build/libs/*.jar

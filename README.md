@@ -5,19 +5,35 @@ Grundlage ist die Spring-Boot-App aus [spring-boot-webapp-uebung](https://github
 
 ## Lokal bauen und starten
 
+Erst das JAR mit Maven bauen (inkl. Tests), dann das Image:
+
 ```bash
+./mvnw package                          # erzeugt target/demo-0.0.1-SNAPSHOT.jar
 docker build -t ccdo-vl3 .
 docker run -p 8080:8080 ccdo-vl3
 curl localhost:8080/actuator/health     # {"status":"UP"}
 ```
 
-Mit Podman genauso: `podman build -t ccdo-vl3 .` und `podman run -p 8080:8080 ccdo-vl3`.
+Mit Podman genauso: `./mvnw package`, dann `podman build -t ccdo-vl3 .` und `podman run -p 8080:8080 ccdo-vl3`.
 
 Ohne Container: `./mvnw verify` (Tests) und `./mvnw spring-boot:run`.
+
+## Warum kein Multi-Stage-Build?
+
+Das `Dockerfile` ist einstufig und kopiert nur das fertige JAR aus `target/` in ein JRE-Image („Build your binaries only once“):
+
+- Gebaut wird genau einmal, mit Maven, und dabei auch getestet.
+- Der Docker-Build ist schnell, weil im Container nichts kompiliert wird.
+- Ins Image kommt genau das JAR, das vorher die Tests bestanden hat.
+
+`.dockerignore` schließt alles außer dem JAR aus, der Build-Kontext bleibt dadurch klein.
+
+Alternative: Ein Multi-Stage-Build kompiliert die App in einer ersten Stufe mit JDK im Container (z. B. `FROM eclipse-temurin:21-jdk AS build`) und kopiert das Ergebnis in ein JRE-Image; dann braucht man lokal kein Java, baut aber ein zweites Mal außerhalb der getesteten Pipeline.
 
 ## App und Datenbank mit Compose
 
 ```bash
+./mvnw package                          # Compose baut das Image aus target/*.jar
 docker compose up --build
 curl localhost:8080/besuche             # zählt Aufrufe in Postgres
 curl localhost:8080/actuator/health     # enthält jetzt auch "db"
@@ -30,7 +46,7 @@ Ohne dieses Profil ist die Datenbank-Autokonfiguration abgeschaltet (`applicatio
 ## CI und Image in GHCR
 
 - `.github/workflows/ci.yml`: `./mvnw verify` mit Java 21.
-- `.github/workflows/docker.yml`: baut das Image, startet es zum Smoke-Test (`/actuator/health`) und pusht es nach GHCR.
+- `.github/workflows/docker.yml`: baut und testet das JAR mit `./mvnw -B verify`, baut daraus das Image, startet es zum Smoke-Test (`/actuator/health`) und pusht es nach GHCR.
 
 Image: `ghcr.io/lars-gentsch-thb/ccdo-vl3-docker:latest` (zusätzlich mit dem Commit-SHA als Tag).
 
