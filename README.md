@@ -46,11 +46,19 @@ Ohne dieses Profil ist die Datenbank-Autokonfiguration abgeschaltet (`applicatio
 ## CI und Image in GHCR
 
 - `.github/workflows/ci.yml`: `./mvnw verify` mit Java 21.
-- `.github/workflows/docker.yml`: baut und testet das JAR mit `./mvnw -B verify`, baut daraus das Image, startet es zum Smoke-Test (`/actuator/health`) und pusht es nach GHCR.
+- `.github/workflows/docker.yml`: baut und testet das JAR mit `./mvnw -B verify`, baut ein Image für den Smoke-Test (`/actuator/health`) und pusht danach ein Multi-Platform-Image (amd64, arm64) nach GHCR.
+
+Das Image wird für `linux/amd64` und `linux/arm64` gebaut (Multi-Platform) und läuft damit auf Intel-/AMD-Rechnern und Apple Silicon ohne Emulation.
 
 Image: `ghcr.io/lars-gentsch-thb/ccdo-vl3-docker:latest` (zusätzlich mit dem Commit-SHA als Tag).
 
 ```bash
 docker pull ghcr.io/lars-gentsch-thb/ccdo-vl3-docker:latest
 docker run -p 8080:8080 ghcr.io/lars-gentsch-thb/ccdo-vl3-docker:latest
+```
+
+Plattformen des Images prüfen:
+
+```bash
+docker buildx imagetools inspect ghcr.io/lars-gentsch-thb/ccdo-vl3-docker:latest
 ```
